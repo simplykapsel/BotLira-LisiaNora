@@ -1,0 +1,29 @@
+{
+  "name": "lisianora-lira",
+  "version": "1.0.0",
+  "description": "Bot Discordowy Lisiej Nory",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/simplykapsel/lisianora-lira.git"
+  },
+  "author": "Kapsel",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/simplykapsel/lisianora-lira/issues"
+  },
+  "homepage": "https://github.com/simplykapsel/lisianora-lira#readme",
+  "dependencies": {
+    "discord.js": "^14.19.3",
+    "dotenv": "^16.5.0",
+    "google-auth-library": "^9.15.1",
+    "google-spreadsheet": "^4.1.4",
+    "googleapis": "^148.0.0",
+    "sequelize": "^6.37.7",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
+  }
+}
