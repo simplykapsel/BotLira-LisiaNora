@@ -5,6 +5,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('konwenty')
         .setDescription('Komendy związane z konwentami')
+        .setDefaultMemberPermissions(0)
         .addSubcommand(sub =>
             sub
                 .setName('lista')
