@@ -1,6 +1,6 @@
 const { Events, MessageFlags, InteractionType } = require('discord.js');
 const { PiuScore, Konwent } = require('../models');
-const { EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
+const path = require('node:path');
 
 module.exports = {
     name: Events.InteractionCreate,
@@ -34,49 +34,41 @@ module.exports = {
             }
         }
 
-        // Istniejąca obsługa przycisków
+        // Obsługa przycisków
         if (interaction.isButton()) {
-            const [action, mode, userId] = interaction.customId.split('_');
-            if (action === 'profile') {
-                const user = await interaction.client.users.fetch(userId);
-                const scores = await PiuScore.findAll({ where: { userId } });
+            const [command, ...args] = interaction.customId.split('_');
 
-                const filtered = scores
-                    .filter(s => s.mode === mode)
-                    .sort((a, b) => b.level - a.level);
-
-                const embed = new EmbedBuilder()
-                    .setTitle(`Profil gracza ${user.username} – ${mode === 'single' ? 'Single' : 'Double'}`)
-                    .setColor(mode === 'single' ? 0xe74c3c : 0x2ecc71)
-                    .addFields({
-                        name: mode === 'single' ? '🎯 Single' : '🎯 Double',
-                        value: filtered.map(s => `[${mode === 'single' ? 'S' : 'D'}${s.level}]`).join(', ') || 'Brak'
-                    })
-                    .setThumbnail(user.displayAvatarURL({ dynamic: true }))
-                    .setFooter({ text: 'Użyj /addscore aby dodać wynik!' });
-
-                const proof = filtered.find(s => s.proofUrl);
-                if (proof?.proofUrl) embed.setImage(proof.proofUrl);
-
-                const buttons = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(`profile_single_${userId}`)
-                        .setLabel('Single')
-                        .setStyle(ButtonStyle.Danger)
-                        .setDisabled(mode === 'single'),
-                    new ButtonBuilder()
-                        .setCustomId(`profile_double_${userId}`)
-                        .setLabel('Double')
-                        .setStyle(ButtonStyle.Success)
-                        .setDisabled(mode === 'double')
-                );
-
-                return interaction.update({ embeds: [embed], components: [buttons] });
+            // Obsługa przycisków dla komendy pump
+            if (command === 'top') {
+                const mode = args[0]; // single lub double
+                const topModule = require('../commands/piu/subcommands/top');
+                await interaction.deferUpdate();
+                await topModule.sendTopScores(interaction, mode);
+                return;
             }
-            return;
+            else if (command === 'profile') {
+                const userId = args[0];
+                const mode = args[1]; // single lub double
+
+                if (mode) {
+                    try {
+                        const profileModule = require('../commands/piu/subcommands/profile');
+                        const targetUser = await interaction.client.users.fetch(userId);
+                        await interaction.deferUpdate();
+                        await profileModule.sendProfileScores(interaction, targetUser, mode);
+                    } catch (error) {
+                        console.error('Błąd podczas obsługi przycisku profilu:', error);
+                        await interaction.followUp({
+                            content: 'Wystąpił błąd podczas aktualizacji profilu.',
+                            ephemeral: true
+                        });
+                    }
+                    return;
+                }
+            }
         }
 
-        // Istniejąca obsługa komend
+        // Obsługa komend
         if (!interaction.isChatInputCommand()) return;
 
         const command = interaction.client.commands.get(interaction.commandName);
