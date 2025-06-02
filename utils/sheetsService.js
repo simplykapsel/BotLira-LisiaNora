@@ -138,76 +138,9 @@ class SheetsService {
             await this.sheets.spreadsheets.values.update(updateRequest);
             console.log('Dane zapisane do arkusza "Ekipa"');
 
-            // Usuń zbędne kolumny i wiersze po zapisaniu danych
-            await this.cleanupSheet(spreadsheetId, sheetId, values.length);
-
             return true;
         } catch (error) {
             console.error('Błąd podczas zapisywania danych:', error.message);
-            return false;
-        }
-    }
-
-    /**
-     * Usuwa puste kolumny i wiersze
-     */
-    async cleanupSheet(spreadsheetId, sheetId, dataRowCount) {
-        try {
-            // Pobierz informacje o arkuszu
-            const sheetInfo = await this.sheets.spreadsheets.get({
-                spreadsheetId,
-                ranges: ['Ekipa'],
-                includeGridData: true,
-            });
-
-            const gridData = sheetInfo.data.sheets[0].data[0];
-            const rowCount = gridData.rowData ? gridData.rowData.length : 0;
-            const colCount = gridData.rowData && gridData.rowData[0] ?
-                (gridData.rowData[0].values ? gridData.rowData[0].values.length : 0) : 0;
-
-            // Przygotuj żądania do usuwania pustych wierszy i kolumn
-            const requests = [];
-
-            // Usuń puste kolumny (zaczynając od B, bo A zawiera dane)
-            if (colCount > 1) {
-                requests.push({
-                    deleteDimension: {
-                        range: {
-                            sheetId: sheetId,
-                            dimension: "COLUMNS",
-                            startIndex: 1, // Zaczynamy od kolumny B (indeks 1)
-                            endIndex: colCount // Do ostatniej kolumny
-                        }
-                    }
-                });
-            }
-
-            // Usuń puste wiersze po danych (jeśli arkusz ma więcej wierszy niż dane + 1 dla nagłówka)
-            if (rowCount > dataRowCount) {
-                requests.push({
-                    deleteDimension: {
-                        range: {
-                            sheetId: sheetId,
-                            dimension: "ROWS",
-                            startIndex: dataRowCount, // Indeks pierwszego pustego wiersza po danych
-                            endIndex: rowCount // Do ostatniego wiersza
-                        }
-                    }
-                });
-            }
-
-            // Wyślij żądania, jeśli są jakieś do wykonania
-            if (requests.length > 0) {
-                await this.sheets.spreadsheets.batchUpdate({
-                    spreadsheetId,
-                    resource: { requests }
-                });
-                console.log('Usunięto puste kolumny i wiersze');
-            }
-
-            return true;
-        } catch (error) {
-            console.error('Błąd podczas czyszczenia arkusza:', error.message);
             return false;
         }
     }
