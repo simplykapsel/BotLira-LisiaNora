@@ -1,5 +1,5 @@
 const { Pomocliski } = require('../../../models');
-const SheetsService = require('../../../utils/sheetsService');
+const SheetsService = require('../../../utils/SheetsService');
 
 module.exports = async (interaction) => {
     await interaction.deferReply({ ephemeral: true });
