@@ -35,11 +35,22 @@ function initializeNotificationSystem(client) {
         return;
     }
 
-    // Co 10 minut aktualizuj dane z arkuszy
-    setInterval(() => synchronizeDyzury(), 10 * 60 * 1000);
+    // Co 5 minut aktualizuj dane z arkuszy
+    setInterval(() => synchronizeDyzury(), 5 * 60 * 10000);
 
     // Co minutę sprawdzaj powiadomienia w bazie danych
-    setInterval(() => checkNotificationsFromDatabase(client), 60000);
+    // setInterval(() => checkNotificationsFromDatabase(client), 60000);
+    function checkOnFullMinute() {
+        const now = new Date();
+        const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+
+        setTimeout(() => {
+            checkNotificationsFromDatabase(client); // uruchom funkcję
+            checkOnFullMinute(); // zaplanuj kolejne wywołanie
+        }, msToNextMinute);
+    }
+
+    checkOnFullMinute(); // uruchom pierwsze sprawdzenie
 
     // Wykonaj pierwszą synchronizację od razu
     console.log('DEBUG: Uruchamiam pierwszą synchronizację dyżurów');
@@ -468,9 +479,9 @@ async function checkNotificationsFromDatabase(client) {
 
         // Sprawdzamy powiadomienia tylko gdy minut jest równa 45 (15 minut przed pełną godziną)
         // lub gdy minuta jest równa 0 (początek godziny)
-        if (obecnaMinuta !== 45 && obecnaMinuta !== 0) {
-            return; // Cicho wyjdź, nie loguj nic aby uniknąć spamowania logów
-        }
+        // if (obecnaMinuta !== 45 && obecnaMinuta !== 0) {
+        //     return; // Cicho wyjdź, nie loguj nic aby uniknąć spamowania logów
+        // }
 
         console.log('DEBUG: Rozpoczęto sprawdzanie powiadomień z bazy danych');
 
