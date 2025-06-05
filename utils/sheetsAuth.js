@@ -12,13 +12,7 @@ async function authorize() {
         // Wczytaj poświadczenia Service Account
         const auth = new google.auth.GoogleAuth({
             keyFile: SERVICE_ACCOUNT_PATH,
-            scopes: [
-                'https://www.googleapis.com/auth/spreadsheets',
-                'https://www.googleapis.com/auth/drive',
-                'https://www.googleapis.com/auth/drive.file',
-                'https://spreadsheets.google.com/feeds',
-                'https://www.googleapis.com/auth/drive.readonly',
-            ],
+            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
         });
 
         // Stwórz klienta autoryzacyjnego
