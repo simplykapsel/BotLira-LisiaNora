@@ -63,7 +63,8 @@ module.exports = {
                             PermissionsBitField.Flags.UseVAD,
                             PermissionsBitField.Flags.PrioritySpeaker,
                             PermissionsBitField.Flags.MoveMembers,
-                            PermissionsBitField.Flags.ManageChannels
+                            PermissionsBitField.Flags.ManageChannels,
+                            PermissionsBitField.Flags.ManagePermissions
                         ]
                     }
                 ];
