@@ -32,8 +32,14 @@ module.exports = async (interaction) => {
             return interaction.editReply({ content: 'Nie znaleziono pomocliskich w bazie danych.' });
         }
 
-        // Zapisz dane do arkusza (upewniając się, że "Ekipa" istnieje i jest wyczyszczona)
+        // Utwórz arkusz "Ekipa" (lub zresetuj istniejący)
         try {
+            const sheetCreated = await sheetsService.createEkipaSheet(spreadsheetId);
+            if (!sheetCreated) {
+                return interaction.editReply({ content: 'Wystąpił błąd podczas tworzenia arkusza "Ekipa".' });
+            }
+
+            // Zapisz dane do arkusza
             const dataWritten = await sheetsService.writeDataToEkipaSheet(spreadsheetId, pomocliski);
             if (!dataWritten) {
                 return interaction.editReply({ content: 'Wystąpił błąd podczas zapisywania danych do arkusza.' });

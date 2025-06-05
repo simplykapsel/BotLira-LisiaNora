@@ -13,22 +13,10 @@ class SheetsService {
     }
 
     /**
-     * Tworzy arkusz "Ekipa" jeśli nie istnieje
-     * Jeśli istnieje, nie robi nic
+     * Tworzy nowy arkusz o nazwie "Ekipa" w podanym dokumencie
      */
-    async ensureEkipaSheet(spreadsheetId) {
-        // Pobierz wszystkie arkusze
-        const res = await this.sheets.spreadsheets.get({ spreadsheetId });
-        const ekipaSheet = res.data.sheets.find(
-            (sheet) => sheet.properties.title === 'Ekipa'
-        );
-
-        if (ekipaSheet) {
-            return ekipaSheet.properties.sheetId;
-        }
-
-        // Dodaj arkusz "Ekipa" jeśli nie istnieje
-        const addReq = {
+    async createEkipaSheet(spreadsheetId) {
+        const request = {
             spreadsheetId,
             resource: {
                 requests: [
@@ -43,41 +31,83 @@ class SheetsService {
             },
         };
 
-        const resp = await this.sheets.spreadsheets.batchUpdate(addReq);
-        // Nowo utworzony sheetId:
-        const newSheetId = resp.data.replies[0].addSheet.properties.sheetId;
-        return newSheetId;
-    }
-
-    /**
-     * Czyści całą zawartość arkusza "Ekipa"
-     */
-    async clearEkipaSheet(spreadsheetId) {
         try {
-            await this.sheets.spreadsheets.values.clear({
-                spreadsheetId,
-                range: 'Ekipa',
-            });
-            console.log('Wyczyszczono arkusz "Ekipa"');
+            await this.sheets.spreadsheets.batchUpdate(request);
+            console.log('Utworzono nowy arkusz "Ekipa"');
             return true;
         } catch (error) {
-            console.error('Błąd podczas czyszczenia arkusza:', error.message);
+            // Jeśli arkusz już istnieje, usuń go i utwórz na nowo
+            if (error.code === 400) {
+                await this.deleteEkipaSheet(spreadsheetId);
+                return this.createEkipaSheet(spreadsheetId);
+            }
+            console.error('Błąd podczas tworzenia arkusza:', error.message);
             return false;
         }
     }
 
     /**
+     * Usuwa arkusz "Ekipa" z dokumentu
+     */
+    async deleteEkipaSheet(spreadsheetId) {
+        try {
+            // Pobierz wszystkie arkusze
+            const res = await this.sheets.spreadsheets.get({ spreadsheetId });
+
+            // Znajdź arkusz "Ekipa"
+            const ekipaSheet = res.data.sheets.find(
+                (sheet) => sheet.properties.title === 'Ekipa'
+            );
+
+            if (ekipaSheet) {
+                // Usuń arkusz
+                await this.sheets.spreadsheets.batchUpdate({
+                    spreadsheetId,
+                    resource: {
+                        requests: [
+                            {
+                                deleteSheet: {
+                                    sheetId: ekipaSheet.properties.sheetId,
+                                },
+                            },
+                        ],
+                    },
+                });
+
+                console.log('Usunięto istniejący arkusz "Ekipa"');
+                return true;
+            }
+        } catch (error) {
+            console.error('Błąd podczas usuwania arkusza:', error.message);
+        }
+
+        return false;
+    }
+
+    /**
      * Zapisuje dane pomocliskich do arkusza "Ekipa"
+     * Teraz z dodatkową funkcjonalnością:
      * - sortuje dane alfabetycznie
      * - dodaje "-" na końcu listy
+     * - usuwa puste kolumny i wiersze
      */
     async writeDataToEkipaSheet(spreadsheetId, data) {
         try {
-            // Upewnij się że arkusz jest
-            await this.ensureEkipaSheet(spreadsheetId);
+            // Najpierw pobierz informacje o arkuszu, aby znaleźć jego sheetId
+            const sheetInfo = await this.sheets.spreadsheets.get({
+                spreadsheetId,
+            });
 
-            // Wyczyść arkusz przed zapisem
-            await this.clearEkipaSheet(spreadsheetId);
+            const ekipaSheet = sheetInfo.data.sheets.find(
+                (sheet) => sheet.properties.title === 'Ekipa'
+            );
+
+            if (!ekipaSheet) {
+                console.error('Nie znaleziono arkusza "Ekipa"');
+                return false;
+            }
+
+            const sheetId = ekipaSheet.properties.sheetId;
 
             // Sortuj dane alfabetycznie po nazwaPrzyjazna
             data.sort((a, b) => {
@@ -91,6 +121,7 @@ class SheetsService {
                 ...data.map(item => [
                     item.nazwaPrzyjazna || '',
                 ]),
+                // Dodaj "-" na końcu listy
                 ["-"],
             ];
 
@@ -119,6 +150,7 @@ class SheetsService {
      * i zwraca ID arkusza
      */
     extractSpreadsheetId(sheetUrl) {
+        // Typowy URL Sheets: https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit
         const match = sheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
         return match ? match[1] : null;
     }
