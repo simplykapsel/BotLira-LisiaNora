@@ -296,7 +296,7 @@ module.exports = async (interaction) => {
                 dataKoniec,
                 linkArkusz: spreadsheetId,
                 osobyDyzurujace: iloscOsobDyzurujacych,
-                powiadomieniaAktywne: false
+                powiadomieniaAktywne: true
             };
 
             await Konwent.upsert(konwentData);

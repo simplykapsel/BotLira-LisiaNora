@@ -16,32 +16,41 @@ class SheetsService {
      * Tworzy nowy arkusz o nazwie "Ekipa" w podanym dokumencie
      */
     async createEkipaSheet(spreadsheetId) {
-        const request = {
-            spreadsheetId,
-            resource: {
-                requests: [
-                    {
-                        addSheet: {
-                            properties: {
-                                title: 'Ekipa',
+        try {
+            // Najpierw sprawdź czy arkusz istnieje
+            const res = await this.sheets.spreadsheets.get({ spreadsheetId });
+            const ekipaSheet = res.data.sheets.find(
+                (sheet) => sheet.properties.title === 'Ekipa'
+            );
+
+            if (ekipaSheet) {
+                // Jeśli arkusz istnieje, wyczyść jego zawartość zamiast usuwać
+                console.log('Arkusz "Ekipa" już istnieje, czyszczenie zawartości...');
+                await this.clearEkipaSheet(spreadsheetId);
+                return true;
+            }
+
+            // Jeśli arkusz nie istnieje, utwórz nowy
+            const request = {
+                spreadsheetId,
+                resource: {
+                    requests: [
+                        {
+                            addSheet: {
+                                properties: {
+                                    title: 'Ekipa',
+                                },
                             },
                         },
-                    },
-                ],
-            },
-        };
+                    ],
+                },
+            };
 
-        try {
             await this.sheets.spreadsheets.batchUpdate(request);
             console.log('Utworzono nowy arkusz "Ekipa"');
             return true;
         } catch (error) {
-            // Jeśli arkusz już istnieje, usuń go i utwórz na nowo
-            if (error.code === 400) {
-                await this.deleteEkipaSheet(spreadsheetId);
-                return this.createEkipaSheet(spreadsheetId);
-            }
-            console.error('Błąd podczas tworzenia arkusza:', error.message);
+            console.error('Błąd podczas tworzenia/czyszczenia arkusza:', error);
             return false;
         }
     }
@@ -107,40 +116,56 @@ class SheetsService {
                 return false;
             }
 
-            const sheetId = ekipaSheet.properties.sheetId;
-
             // Sortuj dane alfabetycznie po nazwaPrzyjazna
             data.sort((a, b) => {
-                const nameA = (a.nazwaPrzyjazna || '').toLowerCase();
-                const nameB = (b.nazwaPrzyjazna || '').toLowerCase();
+                const nameA = (a.nazwaPrzyjazna || a.nazwaUnikalna || '').toLowerCase();
+                const nameB = (b.nazwaPrzyjazna || b.nazwaUnikalna || '').toLowerCase();
                 return nameA.localeCompare(nameB);
             });
 
             // Przekształć dane do formatu wymaganego przez Sheets API
             const values = [
                 ...data.map(item => [
-                    item.nazwaPrzyjazna || '',
+                    item.nazwaPrzyjazna || item.nazwaUnikalna || '',
                 ]),
                 // Dodaj "-" na końcu listy
                 ["-"],
             ];
 
-            // Zapisz dane
-            const updateRequest = {
+            // Użyj append zamiast update
+            const appendRequest = {
                 spreadsheetId,
                 range: 'Ekipa!A1',
                 valueInputOption: 'RAW',
+                insertDataOption: 'OVERWRITE', // Można użyć 'INSERT_ROWS' aby wstawiać nowe wiersze
                 resource: {
                     values,
                 },
             };
 
-            await this.sheets.spreadsheets.values.update(updateRequest);
-            console.log('Dane zapisane do arkusza "Ekipa"');
+            await this.sheets.spreadsheets.values.append(appendRequest);
+            console.log('Dane dodane do arkusza "Ekipa"');
 
             return true;
         } catch (error) {
             console.error('Błąd podczas zapisywania danych:', error.message);
+            return false;
+        }
+    }
+    /**
+     * Czyści zawartość arkusza "Ekipa"
+     * Używane do resetowania danych przed ponownym zapisem
+     */
+    async clearEkipaSheet(spreadsheetId) {
+        try {
+            await this.sheets.spreadsheets.values.clear({
+                spreadsheetId,
+                range: 'Ekipa!A:Z', // Czyści wszystkie kolumny w arkuszu
+            });
+            console.log('Wyczyszczono arkusz "Ekipa"');
+            return true;
+        } catch (error) {
+            console.error('Błąd podczas czyszczenia arkusza:', error);
             return false;
         }
     }
