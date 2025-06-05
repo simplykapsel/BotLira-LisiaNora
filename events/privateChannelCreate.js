@@ -49,11 +49,10 @@ module.exports = {
                     {
                         id: guild.roles.everyone.id,
                         deny: [
-                            PermissionsBitField.Flags.ViewChannel,
                             PermissionsBitField.Flags.Connect
                         ]
                     },
-                    // Uprawnienia dla twórcy kanału - pełne uprawnienia
+                    // Uprawnienia dla twórcy kanału
                     {
                         id: member.id,
                         allow: [
@@ -63,8 +62,6 @@ module.exports = {
                             PermissionsBitField.Flags.Stream,
                             PermissionsBitField.Flags.UseVAD,
                             PermissionsBitField.Flags.PrioritySpeaker,
-                            PermissionsBitField.Flags.MuteMembers,
-                            PermissionsBitField.Flags.DeafenMembers,
                             PermissionsBitField.Flags.MoveMembers,
                             PermissionsBitField.Flags.ManageChannels
                         ]
