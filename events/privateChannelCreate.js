@@ -65,6 +65,7 @@ module.exports = {
                             PermissionsBitField.Flags.MoveMembers,
                             PermissionsBitField.Flags.ManageChannels,
                             PermissionsBitField.Flags.ManageRoles,
+                            PermissionsBitField.Flags.ManagePermissions
                         ]
                     }
                 ];
