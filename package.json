@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/simplykapsel/lisianora-lira#readme",
   "dependencies": {
+    "date-fns-tz": "^3.2.0",
     "discord.js": "^14.19.3",
     "dotenv": "^16.5.0",
     "google-auth-library": "^9.15.1",
