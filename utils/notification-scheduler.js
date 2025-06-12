@@ -4,6 +4,9 @@ const { Sequelize } = require('sequelize');
 const { Konwent, Pomocliski, Dyzur } = require('../models');
 require('dotenv').config();
 
+// Definiujemy strefę czasową dla Warszawy
+const TIMEZONE = 'Europe/Warsaw';
+
 // Zamiast stałego pliku konfiguracyjnego, używamy zmiennych środowiskowych
 // lub, jeśli istnieje konfiguracja w innym miejscu, możemy ją importować
 let config;
@@ -18,6 +21,24 @@ try {
         client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
         private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n') // Konwersja \n na rzeczywiste znaki nowej linii
     };
+}
+
+/**
+ * Konwertuje datę UTC na czas warszawski
+ * @param {Date} date Data w UTC
+ * @returns {Date} Data w czasie warszawskim
+ */
+function getWarsawTime(date = new Date()) {
+    return new Date(date.toLocaleString('en-US', { timeZone: TIMEZONE }));
+}
+
+/**
+ * Formatuje datę do postaci YYYY-MM-DD HH:MM:SS
+ * @param {Date} date Data do sformatowania
+ * @returns {string} Sformatowana data
+ */
+function formatDateTime(date) {
+    return date.toISOString().replace('T', ' ').substring(0, 19);
 }
 
 /**
@@ -41,8 +62,10 @@ function initializeNotificationSystem(client) {
     // Co minutę sprawdzaj powiadomienia w bazie danych
     // setInterval(() => checkNotificationsFromDatabase(client), 60000);
     function checkOnFullMinute() {
+        // Pobierz bieżący czas w strefie czasowej Warsaw
         const now = new Date();
-        const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+        const warsawTime = getWarsawTime(now);
+        const msToNextMinute = (60 - warsawTime.getSeconds()) * 1000 - warsawTime.getMilliseconds();
 
         setTimeout(() => {
             checkNotificationsFromDatabase(client); // uruchom funkcję
@@ -474,18 +497,22 @@ async function synchronizeKonwent(konwent, userMapping) {
  */
 async function checkNotificationsFromDatabase(client) {
     try {
+        // Pobierz aktualny czas i przekształć go na czas warszawski
         const teraz = new Date();
-        const obecnaMinuta = teraz.getMinutes();
+        const warsawTime = getWarsawTime(teraz);
+        const obecnaMinuta = warsawTime.getMinutes();
 
         // Sprawdzamy powiadomienia tylko gdy minut jest równa 45 (15 minut przed pełną godziną)
         // lub gdy minuta jest równa 0 (początek godziny)
-        // if (obecnaMinuta !== 45 && obecnaMinuta !== 0) {
-        //     return; // Cicho wyjdź, nie loguj nic aby uniknąć spamowania logów
-        // }
+        if (obecnaMinuta !== 45 && obecnaMinuta !== 0) {
+            return; // Cicho wyjdź, nie loguj nic aby uniknąć spamowania logów
+        }
 
-        console.log('DEBUG: Rozpoczęto sprawdzanie powiadomień z bazy danych');
+        console.log(`DEBUG: Rozpoczęto sprawdzanie powiadomień z bazy danych (${(warsawTime.getHours()).toString().padStart(2, '0')}:${warsawTime.getMinutes().toString().padStart(2, '0')})`);
 
-        const dzienTygodnia = ['niedziela', 'poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota'][teraz.getDay()];
+        // Pobierz dzień tygodnia zgodny z czasem warszawskim
+        const dzienTygodnia = ['niedziela', 'poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota'][warsawTime.getDay()];
+        console.log(`DEBUG: Aktualny dzień tygodnia (wg czasu warszawskiego): ${dzienTygodnia}`);
 
         // Oblicz godzinę dla powiadomień:
         let docelowaGodzina;
@@ -494,12 +521,13 @@ async function checkNotificationsFromDatabase(client) {
         if (obecnaMinuta === 45) {
             // Jeśli jest 45 minut po godzinie, to wysyłamy powiadomienie 15 minut przed następną pełną godziną
             const za15minut = new Date(teraz.getTime() + 15 * 60000);
-            docelowaGodzina = `${za15minut.getHours().toString().padStart(2, '0')}:00`;
+            const za15minutWarsaw = getWarsawTime(za15minut);
+            docelowaGodzina = `${za15minutWarsaw.getHours().toString().padStart(2, '0')}:00`;
             czyPowiadomienie15min = true;
             console.log(`DEBUG: Sprawdzam dyżury zaczynające się o ${docelowaGodzina} (powiadomienie "za 15 minut")`);
         } else if (obecnaMinuta === 0) {
             // Jeśli jest początek godziny, to wysyłamy powiadomienie o rozpoczęciu dyżuru
-            docelowaGodzina = `${teraz.getHours().toString().padStart(2, '0')}:00`;
+            docelowaGodzina = `${warsawTime.getHours().toString().padStart(2, '0')}:00`;
             czyPowiadomienie15min = false;
             console.log(`DEBUG: Sprawdzam dyżury zaczynające się o ${docelowaGodzina} (powiadomienie "start")`);
         } else {
